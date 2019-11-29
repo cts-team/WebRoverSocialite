@@ -1,0 +1,32 @@
+{
+  "name": "webrover/socialite",
+  "type": "library",
+  "description": "WebRover Socialite",
+  "keywords": [
+    "php",
+    "socialite",
+    "WebRover",
+    "QQ",
+    "Wechat",
+    "Weibo",
+    "Baidu",
+    "OAuth2"
+  ],
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "Mr moon",
+      "email": "createsmart@163.com"
+    }
+  ],
+  "require": {
+    "guzzlehttp/guzzle": "^6.4",
+    "ext-json": "*",
+    "ext-openssl": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "WebRover\\Socialite\\": "src/"
+    }
+  }
+}
