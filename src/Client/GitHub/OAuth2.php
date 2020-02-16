@@ -4,6 +4,7 @@
 namespace WebRover\Socialite\Client\GitHub;
 
 
+use GuzzleHttp\Exception\ClientException;
 use WebRover\Socialite\Client\Base;
 use WebRover\Socialite\Exception;
 
@@ -63,13 +64,14 @@ class OAuth2 extends Base
      */
     public function getAuthUrl($callbackUrl = null, $state = null, $scope = null)
     {
-        $option = array(
+        $option = [
             'client_id' => $this->appid,
             'redirect_uri' => null === $callbackUrl ? $this->callbackUrl : $callbackUrl,
             'scope' => null === $scope ? $this->scope : $scope,
             'state' => $this->getState($state),
-            'allow_signup' => $this->allowSignup,
-        );
+            'allow_signup' => $this->allowSignup
+        ];
+        
         if (null === $this->loginAgentUrl) {
             return $this->getAuthLoginUrl('login/oauth/authorize', $option);
         } else {
@@ -88,17 +90,21 @@ class OAuth2 extends Base
      */
     protected function __getAccessToken($storeState, $code = null, $state = null)
     {
-        $response = $this->http->get($this->getAuthLoginUrl('login/oauth/access_token', [
-            'client_id' => $this->appid,
-            'client_secret' => $this->appSecret,
-            'code' => isset($code) ? $code : (isset($_GET['code']) ? $_GET['code'] : ''),
-            'redirect_uri' => $this->getRedirectUri(),
-            'state' => isset($state) ? $state : (isset($_GET['state']) ? $_GET['state'] : ''),
-        ]), [
-            'headers' => [
-                'Accept' => 'application/json'
-            ]
-        ]);
+        try {
+            $response = $this->http->get($this->getAuthLoginUrl('login/oauth/access_token', [
+                'client_id' => $this->appid,
+                'client_secret' => $this->appSecret,
+                'code' => isset($code) ? $code : (isset($_GET['code']) ? $_GET['code'] : ''),
+                'redirect_uri' => $this->getRedirectUri(),
+                'state' => isset($state) ? $state : (isset($_GET['state']) ? $_GET['state'] : '')
+            ]), [
+                'headers' => [
+                    'Accept' => 'application/json'
+                ]
+            ]);
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
         if (isset($this->result['error'])) {
@@ -117,9 +123,13 @@ class OAuth2 extends Base
      */
     public function getUserInfo($accessToken = null)
     {
-        $response = $this->http->get($this->getUrl('user', [
-            'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('user', [
+                'access_token' => null === $accessToken ? $this->accessToken : $accessToken
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
