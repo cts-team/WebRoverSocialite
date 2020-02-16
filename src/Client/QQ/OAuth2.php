@@ -4,6 +4,7 @@
 namespace WebRover\Socialite\Client\QQ;
 
 
+use GuzzleHttp\Exception\ClientException;
 use WebRover\Socialite\Client\Base;
 use WebRover\Socialite\Exception;
 
@@ -79,7 +80,7 @@ class OAuth2 extends Base
             'redirect_uri' => null === $callbackUrl ? $this->callbackUrl : $callbackUrl,
             'state' => $this->getState($state),
             'scope' => null === $scope ? $this->scope : $scope,
-            'display' => $this->display,
+            'display' => $this->display
         ];
 
         if (null === $this->loginAgentUrl) {
@@ -100,14 +101,18 @@ class OAuth2 extends Base
      */
     protected function __getAccessToken($storeState, $code = null, $state = null)
     {
-        $response = $this->http->get($this->getUrl('oauth2.0/token', [
-            'grant_type' => 'authorization_code',
-            'client_id' => $this->appid,
-            'client_secret' => $this->appSecret,
-            'code' => isset($code) ? $code : (isset($_GET['code']) ? $_GET['code'] : ''),
-            'state' => isset($state) ? $state : (isset($_GET['state']) ? $_GET['state'] : ''),
-            'redirect_uri' => $this->getRedirectUri(),
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('oauth2.0/token', [
+                'grant_type' => 'authorization_code',
+                'client_id' => $this->appid,
+                'client_secret' => $this->appSecret,
+                'code' => isset($code) ? $code : (isset($_GET['code']) ? $_GET['code'] : ''),
+                'state' => isset($state) ? $state : (isset($_GET['state']) ? $_GET['state'] : ''),
+                'redirect_uri' => $this->getRedirectUri()
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
         if (isset($this->result['code']) && 0 != $this->result['code']) {
@@ -130,11 +135,15 @@ class OAuth2 extends Base
             $this->getOpenID($accessToken);
         }
 
-        $response = $this->http->get($this->getUrl('user/get_user_info', [
-            'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
-            'oauth_consumer_key' => $this->appid,
-            'openid' => $this->openid,
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('user/get_user_info', [
+                'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
+                'oauth_consumer_key' => $this->appid,
+                'openid' => $this->openid
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
@@ -153,12 +162,16 @@ class OAuth2 extends Base
      */
     public function refreshToken($refreshToken)
     {
-        $response = $this->http->get($this->getUrl('oauth2.0/token', [
-            'grant_type' => 'refresh_token',
-            'client_id' => $this->appid,
-            'client_secret' => $this->appSecret,
-            'refresh_token' => $refreshToken,
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('oauth2.0/token', [
+                'grant_type' => 'refresh_token',
+                'client_id' => $this->appid,
+                'client_secret' => $this->appSecret,
+                'refresh_token' => $refreshToken
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
@@ -197,7 +210,11 @@ class OAuth2 extends Base
             $params['unionid'] = $this->openidMode;
         }
 
-        $response = $this->http->get($this->getUrl('oauth2.0/me', $params));
+        try {
+            $response = $this->http->get($this->getUrl('oauth2.0/me', $params));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
@@ -228,10 +245,15 @@ class OAuth2 extends Base
             'appid' => $this->appid,
             'secret' => $this->appSecret,
             'js_code' => $jsCode,
-            'grant_type' => 'authorization_code',
+            'grant_type' => 'authorization_code'
         ]);
 
-        $response = $this->http->get('https://api.q.qq.com/sns/jscode2session?' . $query);
+        try {
+            $response = $this->http->get('https://api.q.qq.com/sns/jscode2session?' . $query);
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
+        
         $this->result = json_decode($response->getBody()->getContents(), true);
 
         if (isset($this->result['errcode']) && 0 != $this->result['errcode']) {
