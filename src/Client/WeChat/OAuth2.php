@@ -4,6 +4,7 @@
 namespace WebRover\Socialite\Client\WeChat;
 
 
+use GuzzleHttp\Exception\ClientException;
 use WebRover\Socialite\Client\Base;
 use WebRover\Socialite\Exception;
 
@@ -57,7 +58,7 @@ class OAuth2 extends Base
      * @param array $params GET参数
      * @return string
      */
-    public function getUrl($name, $params = array())
+    public function getUrl($name, $params = [])
     {
         if ('http' === substr($name, 0, 4)) {
             $domain = $name;
@@ -82,7 +83,7 @@ class OAuth2 extends Base
             'redirect_uri' => null === $callbackUrl ? (null === $this->callbackUrl ? (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '') : $this->callbackUrl) : $callbackUrl,
             'response_type' => 'code',
             'scope' => null === $scope ? (null === $this->scope ? 'snsapi_login' : $this->scope) : $scope,
-            'state' => $this->getState($state),
+            'state' => $this->getState($state)
         ];
 
         if (null === $this->loginAgentUrl) {
@@ -107,7 +108,7 @@ class OAuth2 extends Base
             'redirect_uri' => null === $callbackUrl ? (null === $this->callbackUrl ? (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '') : $this->callbackUrl) : $callbackUrl,
             'response_type' => 'code',
             'scope' => null === $scope ? (null === $this->scope ? 'snsapi_userinfo' : $this->scope) : $scope,
-            'state' => $this->getState($state),
+            'state' => $this->getState($state)
         ];
 
         if (null === $this->loginAgentUrl) {
@@ -129,12 +130,16 @@ class OAuth2 extends Base
      */
     protected function __getAccessToken($storeState, $code = null, $state = null)
     {
-        $response = $this->http->get($this->getUrl('sns/oauth2/access_token', [
-            'appid' => $this->appid,
-            'secret' => $this->appSecret,
-            'code' => isset($code) ? $code : (isset($_GET['code']) ? $_GET['code'] : ''),
-            'grant_type' => 'authorization_code',
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('sns/oauth2/access_token', [
+                'appid' => $this->appid,
+                'secret' => $this->appSecret,
+                'code' => isset($code) ? $code : (isset($_GET['code']) ? $_GET['code'] : ''),
+                'grant_type' => 'authorization_code'
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
@@ -165,11 +170,15 @@ class OAuth2 extends Base
      */
     public function getUserInfo($accessToken = null)
     {
-        $response = $this->http->get($this->getUrl('sns/userinfo', [
-            'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
-            'openid' => $this->openid,
-            'lang' => $this->lang,
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('sns/userinfo', [
+                'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
+                'openid' => $this->openid,
+                'lang' => $this->lang
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
@@ -188,11 +197,15 @@ class OAuth2 extends Base
      */
     public function refreshToken($refreshToken)
     {
-        $response = $this->http->get($this->getUrl('sns/oauth2/refresh_token', [
-            'appid' => $this->appid,
-            'grant_type' => 'refresh_token',
-            'refresh_token' => $refreshToken,
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('sns/oauth2/refresh_token', [
+                'appid' => $this->appid,
+                'grant_type' => 'refresh_token',
+                'refresh_token' => $refreshToken
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
@@ -207,10 +220,14 @@ class OAuth2 extends Base
      */
     public function validateAccessToken($accessToken = null)
     {
-        $response = $this->http->get($this->getUrl('sns/auth', [
-            'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
-            'openid' => $this->openid,
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('sns/auth', [
+                'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
+                'openid' => $this->openid
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
@@ -228,12 +245,16 @@ class OAuth2 extends Base
      */
     public function getSessionKey($jsCode)
     {
-        $response = $this->http->get($this->getUrl('sns/jscode2session', [
-            'appid' => $this->appid,
-            'secret' => $this->appSecret,
-            'js_code' => $jsCode,
-            'grant_type' => 'authorization_code',
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('sns/jscode2session', [
+                'appid' => $this->appid,
+                'secret' => $this->appSecret,
+                'js_code' => $jsCode,
+                'grant_type' => 'authorization_code'
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
