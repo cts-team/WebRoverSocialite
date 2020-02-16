@@ -4,6 +4,7 @@
 namespace WebRover\Socialite\Client\Weibo;
 
 
+use GuzzleHttp\Exception\ClientException;
 use WebRover\Socialite\Client\Base;
 use WebRover\Socialite\Exception;
 
@@ -95,7 +96,7 @@ class OAuth2 extends Base
             'state' => $this->getState($state),
             'display' => $this->display,
             'forcelogin' => $this->forcelogin,
-            'language' => $this->language,
+            'language' => $this->language
         ];
 
         if (null === $this->loginAgentUrl) {
@@ -120,15 +121,19 @@ class OAuth2 extends Base
      */
     protected function __getAccessToken($storeState, $code = null, $state = null)
     {
-        $response = $this->http->post($this->getUrl('oauth2/access_token'), [
-            'json' => [
-                'client_id' => $this->appid,
-                'client_secret' => $this->appSecret,
-                'grant_type' => 'authorization_code',
-                'code' => isset($code) ? $code : (isset($_GET['code']) ? $_GET['code'] : ''),
-                'redirect_uri' => $this->getRedirectUri(),
-            ]
-        ]);
+        try {
+            $response = $this->http->post($this->getUrl('oauth2/access_token'), [
+                'form_params' => [
+                    'client_id' => $this->appid,
+                    'client_secret' => $this->appSecret,
+                    'grant_type' => 'authorization_code',
+                    'code' => isset($code) ? $code : (isset($_GET['code']) ? $_GET['code'] : ''),
+                    'redirect_uri' => $this->getRedirectUri(),
+                ]
+            ]);
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
@@ -149,11 +154,15 @@ class OAuth2 extends Base
      */
     public function getUserInfo($accessToken = null)
     {
-        $response = $this->http->get($this->getUrl('2/users/show.json', [
-            'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
-            'uid' => $this->openid,
-            'screenName' => $this->screenName,
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('2/users/show.json', [
+                'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
+                'uid' => $this->openid,
+                'screenName' => $this->screenName
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
@@ -184,11 +193,15 @@ class OAuth2 extends Base
      */
     public function validateAccessToken($accessToken = null)
     {
-        $response = $this->http->post($this->getUrl('oauth2/get_token_info'), [
-            'json' => [
-                'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
-            ]
-        ]);
+        try {
+            $response = $this->http->post($this->getUrl('oauth2/get_token_info'), [
+                'form_params' => [
+                    'access_token' => null === $accessToken ? $this->accessToken : $accessToken
+                ]
+            ]);
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
