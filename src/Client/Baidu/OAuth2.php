@@ -4,6 +4,7 @@
 namespace WebRover\Socialite\Client\Baidu;
 
 
+use GuzzleHttp\Exception\ClientException;
 use WebRover\Socialite\Client\Base;
 use WebRover\Socialite\Exception;
 
@@ -99,14 +100,17 @@ class OAuth2 extends Base
      */
     protected function __getAccessToken($storeState, $code = null, $state = null)
     {
-
-        $response = $this->http->get($this->getUrl('oauth/2.0/token'), [
-            'grant_type' => 'authorization_code',
-            'code' => isset($code) ? $code : (isset($_GET['code']) ? $_GET['code'] : ''),
-            'client_id' => $this->appid,
-            'client_secret' => $this->appSecret,
-            'redirect_uri' => $this->getRedirectUri(),
-        ]);
+        try {
+            $response = $this->http->get($this->getUrl('oauth/2.0/token'), [
+                'grant_type' => 'authorization_code',
+                'code' => isset($code) ? $code : (isset($_GET['code']) ? $_GET['code'] : ''),
+                'client_id' => $this->appid,
+                'client_secret' => $this->appSecret,
+                'redirect_uri' => $this->getRedirectUri(),
+            ]);
+        } catch (ClientException$exception) {
+            $response = $exception->getResponse();
+        }
 
         $this->result = json_decode($response->getBody()->getContents(), true);
 
@@ -126,9 +130,14 @@ class OAuth2 extends Base
      */
     public function getUserInfo($accessToken = null)
     {
-        $response = $this->http->get($this->getUrl('rest/2.0/passport/users/getLoggedInUser', [
-            'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
-        ]));
+        try {
+            $response = $this->http->get($this->getUrl('rest/2.0/passport/users/getLoggedInUser', [
+                'access_token' => null === $accessToken ? $this->accessToken : $accessToken,
+            ]));
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
+
         $this->result = json_decode($response->getBody()->getContents(), true);
         if (!isset($this->result['error_description'])) {
             $this->openid = $this->result['uid'];
@@ -147,13 +156,18 @@ class OAuth2 extends Base
      */
     public function refreshToken($refreshToken)
     {
-        $response = $this->http->get($this->getUrl('oauth/2.0/token'), array(
-            'grant_type' => 'refresh_token',
-            'refresh_token' => $refreshToken,
-            'client_id' => $this->appid,
-            'client_secret' => $this->appSecret,
-            'scope' => $this->scope,
-        ));
+        try {
+            $response = $this->http->get($this->getUrl('oauth/2.0/token'), [
+                'grant_type' => 'refresh_token',
+                'refresh_token' => $refreshToken,
+                'client_id' => $this->appid,
+                'client_secret' => $this->appSecret,
+                'scope' => $this->scope
+            ]);
+        } catch (ClientException $exception) {
+            $response = $exception->getResponse();
+        }
+
         $this->result = json_decode($response->getBody()->getContents(), true);
 
         if (!isset($this->result['error_description'])) {
